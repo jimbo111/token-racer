@@ -1,0 +1,12 @@
+node_modules
+dist
+.cache
+*.tsbuildinfo
+.env
+.env.*
+.DS_Store
+.eslintcache
+
+# Local-only developer notes. Keep any markdown ending in `.local.md` out of
+# the repo — useful for scratch notes, personal TODOs, etc.
+*.local.md
