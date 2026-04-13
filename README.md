@@ -1,6 +1,6 @@
 # 🏁 token-racer
 
-Race your friends on LLM token usage. Install one CLI, keep using Claude Code / Codex / OpenCode the way you already do, and your token totals show up above your shell prompt + on a shared leaderboard.
+Race your friends on LLM token usage. Install one CLI, keep using Claude Code / Codex / OpenCode the way you already do, and your token totals show up above your shell prompt + on the live leaderboard at **[token-racer-dashboard.vercel.app](https://token-racer-dashboard.vercel.app)**.
 
 No resident process. No prompts read. No tool calls or file contents leave your laptop. Every batch is signed on your machine with your own Ed25519 key before it's sent.
 
@@ -25,6 +25,10 @@ Open a new terminal when it's done. You should see a usage line appear above you
 ```
 
 (Cached for 5 seconds, so the count lags a few seconds behind your last prompt — that's expected, not a bug.)
+
+### See your standings
+
+Open **[token-racer-dashboard.vercel.app](https://token-racer-dashboard.vercel.app)** to see the global racer leaderboard, country brackets, and live Nation Wars sessions in a Windows 95 dashboard. Your statusline shows today's totals; the dashboard is where you find out who's actually winning.
 
 > **Back up `~/.token-racer/keys/`** if you care about preserving your leaderboard history across machines or reinstalls. The backend cannot re-issue an API key for a lost keypair — you'd have to start a new account.
 
