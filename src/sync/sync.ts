@@ -35,6 +35,12 @@ type SyncOptions = {
 	 * Override the byte cap per tailFile call. Default is MAX_BYTES_PER_TAIL.
 	 */
 	maxBytesPerFile?: number;
+	/**
+	 * One-shot backend URL override. Takes precedence over `config.apiUrl` for
+	 * this sync only — NOT persisted. Useful for self-hosters targeting a
+	 * different backend for a single run.
+	 */
+	apiUrl?: string;
 };
 
 /**
@@ -95,7 +101,7 @@ async function runSync(options: SyncOptions): Promise<SyncResult> {
 	const sender =
 		options.sender ??
 		new BatchSender({
-			apiUrl: config.apiUrl,
+			apiUrl: options.apiUrl ?? config.apiUrl,
 			apiKey: config.apiKey,
 		});
 

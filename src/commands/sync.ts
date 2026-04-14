@@ -13,12 +13,17 @@ const syncCommand = define({
 			description: "Print only errors (use this for background/detached invocations).",
 			default: false,
 		},
+		apiUrl: {
+			type: "string",
+			description:
+				"Override the configured backend URL for this run only. Useful for self-hosters pushing one batch to a different backend without touching ~/.token-racer/config.json.",
+		},
 	},
 	async run(ctx) {
-		const { quiet } = ctx.values;
+		const { quiet, apiUrl } = ctx.values;
 
 		try {
-			const result = await sync();
+			const result = await sync(apiUrl !== undefined ? { apiUrl } : {});
 
 			if (!result.ok) {
 				// Failure — always print, even in quiet mode.

@@ -85,7 +85,7 @@ Nothing stays running between prompts. If the backend is down, nothing is lost: 
 | `token-racer auth show` | Print your keyId + public key. |
 | `token-racer uninstall [--purge]` | Remove the integration. `--purge` also deletes `~/.token-racer/`. |
 
-All commands accept `--apiUrl <url>` if you want to point at a different backend just for that run.
+Every command that talks to the backend (`setup`, `status`, `doctor`, `sync`, `auth`) accepts `--apiUrl <url>` — handy for self-hosters pointing a one-off run at a different backend without touching `~/.token-racer/config.json`.
 
 ---
 
