@@ -38,7 +38,7 @@ Open **[token-racer-dashboard.vercel.app](https://token-racer-dashboard.vercel.a
 
 ```bash
 token-racer uninstall          # remove the integration, keep your account
-token-racer uninstall --purge  # full wipe — deletes local keys too
+token-racer uninstall --purge  # full wipe — deletes local keys too (interactive: type 'purge' to confirm; use --yes in scripts)
 ```
 
 ### Pointing at a different backend (self-hosters)
