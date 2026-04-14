@@ -6,7 +6,7 @@
 #
 # Environment overrides:
 #   TOKEN_RACER_INSTALL_DIR=/custom/path    (default: $HOME/.local/bin, fallback /usr/local/bin)
-#   TOKEN_RACER_VERSION=v0.2.0              (default: latest)
+#   TOKEN_RACER_VERSION=vX.Y.Z              (default: latest)
 #
 # What this does, in order:
 #   1. Checks platform is macOS or Linux (Windows → use WSL).
@@ -90,7 +90,7 @@ check_node() {
         exit 1
     fi
 
-    note "Node $_v detected"
+    success "Node $_v detected (meets requirement)"
 }
 
 # ---------------------------------------------------------------------------
