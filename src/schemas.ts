@@ -412,7 +412,7 @@ if (import.meta.vitest != null) {
 		});
 
 		it("validates a config with only apiUrl", () => {
-			const cfg = { apiUrl: "http://localhost:3000" };
+			const cfg = { apiUrl: "https://api.test" };
 			const result = v.safeParse(daemonConfigSchema, cfg);
 			expect(result.success).toBe(true);
 		});
