@@ -4,7 +4,7 @@ import { generateKeyPair, deriveKeyId } from "./crypto/keygen.ts";
 import { saveKeyPair, loadKeyPair, keyPairExists } from "./crypto/key-store.ts";
 import { ensureTokenRacerDirs } from "./state/paths.ts";
 import { detectProviders } from "./providers/auto-detect.ts";
-import { CONFIG_FILE } from "./constants.ts";
+import { CONFIG_FILE, REGISTRATION_TIMEOUT_MS } from "./constants.ts";
 import type { DaemonConfig } from "./types.ts";
 import { CursorStore } from "./state/cursor-store.ts";
 import { discoverFilesForProvider } from "./sync/discover.ts";
@@ -72,7 +72,7 @@ async function tryRegister(
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ publicKeyHex }),
-			signal: AbortSignal.timeout(10_000),
+			signal: AbortSignal.timeout(REGISTRATION_TIMEOUT_MS),
 		});
 
 		if (response.ok) {
@@ -88,7 +88,9 @@ async function tryRegister(
 		throw new Error(`Registration failed (HTTP ${response.status}): ${text}`);
 	} catch (err) {
 		if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")) {
-			throw new Error("Registration timed out — backend may be unreachable.");
+			throw new Error(
+				"Registration timed out — the backend may be waking from idle. Re-run `token-racer setup` in ~30s to try again.",
+			);
 		}
 		throw err;
 	}

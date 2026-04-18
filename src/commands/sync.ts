@@ -35,12 +35,16 @@ const syncCommand = define({
 			const result = await sync();
 
 			if (!result.ok) {
-				// Failure — always print, even in quiet mode.
+				// Failure — always print, even in quiet mode. Use exitCode (not
+				// process.exit) so any cleanup in finally blocks still runs.
+				// Retryable errors exit 0 so the statusline/shell hook doesn't
+				// surface a transient network hiccup as a broken command.
 				const retryStr = result.retryable ? " (will retry next sync)" : " (non-retryable)";
 				process.stderr.write(
 					`${pc.red("sync failed:")} ${result.error}${retryStr}\n`,
 				);
-				process.exit(result.retryable ? 0 : 1);
+				process.exitCode = result.retryable ? 0 : 1;
+				return;
 			}
 
 			if (quiet) return;
@@ -70,7 +74,7 @@ const syncCommand = define({
 			process.stderr.write(
 				`${pc.red("sync crashed:")} ${err instanceof Error ? err.message : String(err)}\n`,
 			);
-			process.exit(1);
+			process.exitCode = 1;
 		}
 	},
 });

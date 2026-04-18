@@ -7,7 +7,7 @@ import { saveKeyPair, loadPublicKey, keyPairExists } from "../crypto/key-store.t
 import { ensureTokenRacerDirs } from "../state/paths.ts";
 import { loadConfig, checkpointExistingLogs } from "../setup.ts";
 import { detectProviders } from "../providers/auto-detect.ts";
-import { KEYS_DIR, CONFIG_FILE, DEFAULT_API_URL } from "../constants.ts";
+import { KEYS_DIR, CONFIG_FILE, DEFAULT_API_URL, REGISTRATION_TIMEOUT_MS } from "../constants.ts";
 
 // See comment in commands/setup.ts — we compare against this immutable literal
 // rather than DEFAULT_API_URL because the latter can be env-overridden.
@@ -268,7 +268,7 @@ export async function runRegister(
 		if (result.kind === "username-taken") {
 			lastHint =
 				nicknameToTry === undefined
-					? "Auto-generated nickname collided — trying again."
+					? "Auto-generated nickname collided."
 					: `Nickname "${nicknameToTry}" is already taken — try another.`;
 			nicknameToTry = undefined;
 			promptedThisLoop = false; // force re-prompt in the next iteration
@@ -290,11 +290,15 @@ export async function runRegister(
 	}
 
 	// Exhausted retries.
-	process.stderr.write(
-		pc.red(
-			`Error: could not register after ${MAX_ATTEMPTS} attempt(s). ${lastHint ?? ""}\n`,
-		),
-	);
+	if (MAX_ATTEMPTS === 1) {
+		process.stderr.write(
+			pc.red(`Error: registration failed — ${lastHint ?? "server rejected the request"}\n`),
+		);
+	} else {
+		process.stderr.write(
+			pc.red(`Error: could not register after ${MAX_ATTEMPTS} attempt(s). ${lastHint ?? ""}\n`),
+		);
+	}
 	return "failed";
 }
 
@@ -364,11 +368,11 @@ async function runRename(apiUrl: string, newName: string): Promise<void> {
 	}
 
 	if (response.status === 400) {
-		const body = await response.json().catch(() => ({})) as { issues?: Record<string, string[]> };
-		const firstHint =
-			body.issues !== undefined
-				? Object.values(body.issues).flat().at(0) ?? "invalid nickname"
-				: "invalid nickname";
+		const body = await response.json().catch(() => ({})) as { issues?: Array<{ field: string; message: string }> };
+		const firstIssue = body.issues?.[0];
+		const firstHint = firstIssue != null
+			? `${firstIssue.field}: ${firstIssue.message}`
+			: "invalid nickname";
 		process.stderr.write(pc.red(`Error: ${firstHint}\n`));
 		process.exitCode = 1;
 		return;
@@ -443,7 +447,7 @@ async function tryRegister(
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(body),
-			signal: AbortSignal.timeout(10_000),
+			signal: AbortSignal.timeout(REGISTRATION_TIMEOUT_MS),
 		});
 	} catch (err) {
 		return {
@@ -463,12 +467,12 @@ async function tryRegister(
 
 	if (response.status === 400) {
 		const body = (await response.json().catch(() => ({}))) as {
-			issues?: Record<string, string[]>;
+			issues?: Array<{ field: string; message: string }>;
 		};
-		const firstHint =
-			body.issues !== undefined
-				? Object.values(body.issues).flat().at(0) ?? "invalid input"
-				: "invalid input";
+		const firstIssue = body.issues?.[0];
+		const firstHint = firstIssue != null
+			? `${firstIssue.field}: ${firstIssue.message}`
+			: "invalid input";
 		return { kind: "bad-format", hint: firstHint };
 	}
 

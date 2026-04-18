@@ -29,3 +29,12 @@ export const DEFAULT_API_URL =
 
 /** HTTP request timeout for backend POSTs. */
 export const REQUEST_TIMEOUT_MS = 10_000;
+
+/**
+ * Timeout for the initial registration POST. Longer than REQUEST_TIMEOUT_MS
+ * because the hosted backend sleeps after idle periods (free-tier hosting can
+ * take ~30s to wake up). First-time users shouldn't see a "backend unreachable"
+ * error just because the server is cold. Regular sync stays fast via
+ * REQUEST_TIMEOUT_MS.
+ */
+export const REGISTRATION_TIMEOUT_MS = 45_000;
