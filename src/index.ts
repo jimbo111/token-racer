@@ -31,7 +31,7 @@ const subCommands = new Map([
 
 await cli(process.argv.slice(2), rootCommand, {
 	name: "token-racer",
-	version: "0.1.0",
+	version: "0.2.1",
 	description:
 		"Monitor LLM tool usage, sign batches with Ed25519, and push to the token-racer backend.",
 	subCommands,

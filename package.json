@@ -1,7 +1,7 @@
 {
   "name": "token-racer",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Competitive token usage tracker for Claude Code, Codex, and OpenCode — logs are tailed locally, signed with Ed25519, and pushed to a shared leaderboard backend.",
   "keywords": [
     "cli",
